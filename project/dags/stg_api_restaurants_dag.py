@@ -4,15 +4,8 @@ import requests
 
 from datetime import datetime, timedelta
 from airflow.decorators import dag, task
+from airflow.hooks.base import BaseHook
 from lib import ConnectionBuilder
-
-API_URL = "https://d5d04q7d963eapoepsqr.apigw.yandexcloud.net/restaurants"
-
-HEADERS = {
-    "X-Nickname": "verydnob",
-    "X-Cohort": "14",
-    "X-API-KEY": "25c27781-8fde-4b30-a22e-524044a7580f",
-}
 
 default_args = {
     "owner": "airflow",
@@ -35,6 +28,16 @@ def stg_api_restaurants_dag():
         log = logging.getLogger(__name__)
         conn = ConnectionBuilder.pg_conn("PG_WAREHOUSE_CONNECTION")
 
+        api_conn = BaseHook.get_connection("API_CONNECTION")
+        base_url = api_conn.host.rstrip("/")
+        endpoint = f"{base_url}/restaurants"
+        api_key = "25c27781-8fde-4b30-a22e-524044a7580f"
+
+        HEADERS = {
+            "X-Nickname": "verydnob",
+            "X-Cohort": "14",
+            "X-API-KEY": api_key,
+        }
         limit = 50
         offset = 0
 
@@ -48,15 +51,16 @@ def stg_api_restaurants_dag():
                         "sort_direction": "asc",
                     }
 
-                    response = requests.get(API_URL, headers=HEADERS, params=params)
+                    response = requests.get(endpoint, headers=HEADERS, params=params)
 
                     if response.status_code != 200:
                         log.error(f"API error: {response.text}")
-                        break
+                        raise Exception("API request failed")
 
                     data = response.json()
 
                     if not data:
+                        log.info("No data received from API")
                         break
 
                     for row in data:
@@ -69,10 +73,10 @@ def stg_api_restaurants_dag():
                                 object_value = EXCLUDED.object_value,
                                 update_ts = NOW()
                         """,
-                            (row["_id"], json.dumps(row)),
+                            (row["_id"], json.dumps(row, ensure_ascii=False)),
                         )
                     offset += limit
-            c.commit()
+                c.commit()
         log.info("STG restaurants loaded successfully")
 
     load_api_restaurants()
