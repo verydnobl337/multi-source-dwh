@@ -26,6 +26,7 @@ def dds_dm_orders():
 
         dwh_pg_connect = ConnectionBuilder.pg_conn("PG_WAREHOUSE_CONNECTION")
 
+        # Получаем заказы из STG в порядке их обновления.
         select_query = """
             SELECT
                 id,
@@ -35,6 +36,8 @@ def dds_dm_orders():
             ORDER BY update_ts
         """
 
+        # Upsert заказов в DDS: существующие записи обновляются,
+        # новые записи добавляются.
         insert_query = """
             INSERT INTO dds.dm_orders(
                 order_key,
@@ -80,6 +83,7 @@ def dds_dm_orders():
             LIMIT 1
         """
 
+        # Одна транзакция используется для обработки текущего набора данных.
         with dwh_pg_connect.connection() as conn:
             with conn.cursor() as cur:
                 cur.execute(select_query)

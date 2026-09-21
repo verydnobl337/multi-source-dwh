@@ -61,6 +61,8 @@ def dds_dm_timestamps():
 
     @task()
     def load_timestamps_to_dds():
+        # Формируем календарные значения из дат заказов.
+        # Они используются DDS и CDM для агрегации по периодам.
         log = logging.getLogger(__name__)
 
         dwh_pg_connect = ConnectionBuilder.pg_conn("PG_WAREHOUSE_CONNECTION")

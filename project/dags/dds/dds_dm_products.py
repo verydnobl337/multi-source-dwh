@@ -67,6 +67,7 @@ def dds_dm_products():
             LIMIT 1
         """
 
+        # Обрабатываем заказы и извлекаем из них уникальные продукты.
         with dwh_pg_connect.connection() as conn:
             with conn.cursor() as cur:
                 cur.execute(select_query)
@@ -103,7 +104,7 @@ def dds_dm_products():
                         
                         restaurant_id = restaurant_db_id[0]
                         
-                        # Извлекаем продукты из заказа
+                        # Извлекаем продукты из заказа.
                         # Структура: order_items или items
                         order_items = order_json.get("order_items", [])
                         if not order_items:

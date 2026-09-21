@@ -25,7 +25,11 @@ def cdm_dm_courier_ledger():
         log = logging.getLogger(__name__)
         conn = ConnectionBuilder.pg_conn("PG_WAREHOUSE_CONNECTION")
 
+        # Формируем итоговую витрину выплат курьерам.
+        # Расчёт выполняется по курьеру и месяцу.
         insert_query = """
+        -- Собираем исходные данные по доставкам, курьерам,
+        -- заказам и продажам перед расчётом агрегатов.
         WITH base AS (
             SELECT
                 c.courier_id,
@@ -44,6 +48,7 @@ def cdm_dm_courier_ledger():
             JOIN dds.fct_product_sales fps
                 ON fps.order_id = o.id
         ),
+        -- Агрегируем показатели по курьеру за месяц.
         agg AS (
             SELECT
                 courier_id,
@@ -61,6 +66,8 @@ def cdm_dm_courier_ledger():
                 settlement_year,
                 settlement_month
         ),
+        -- Рассчитываем комиссию и коэффициент выплаты
+        -- в зависимости от среднего рейтинга курьера.
         calc AS (
             SELECT
                 *,

@@ -56,6 +56,8 @@ def events_load():
             "ORDER BY id ASC",
             (last_loaded_id,),
         )
+        # Загружаем только события, которые появились
+        # после последнего успешно обработанного ID.
         new_events = source_cursor.fetchall()
 
         with dest_conn:

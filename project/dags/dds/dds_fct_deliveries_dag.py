@@ -37,8 +37,10 @@ def dds_fct_deliveries_dag():
 
                 rows = cur.fetchall()
 
+                # Каждая запись API преобразуется в факт доставки.
                 for row in rows:
 
+                    # API возвращает данные доставки в JSON.
                     data = json.loads(row[0])
 
                     order_id = data["order_id"]

@@ -29,7 +29,7 @@ def dds_dm_users():
         log = logging.getLogger(__name__)
 
         dwh_pg_connect = ConnectionBuilder.pg_conn("PG_WAREHOUSE_CONNECTION")
-        
+
         select_query = """
             SELECT
                 id,
@@ -40,7 +40,8 @@ def dds_dm_users():
             WHERE object_value IS NOT NULL
             ORDER BY update_ts
         """
-        
+
+        # Upsert пользователей из STG в DDS.
         insert_query = """
             INSERT INTO dds.dm_users(
                 user_id,
@@ -61,16 +62,16 @@ def dds_dm_users():
             with conn.cursor() as cur:
                 cur.execute(select_query)
                 records = cur.fetchall()
-                
+
                 log.info(f"Found {len(records)} records in STG")
 
                 inserted_count = 0
                 updated_count = 0
-                
+
                 for record in records:
                     try:
                         user_json = str2json(record[2])
-                        
+
                         user_id_field = user_json.get("_id", {})
                         if isinstance(user_id_field, dict):
                             user_id = user_id_field.get("$oid", "")
@@ -79,11 +80,11 @@ def dds_dm_users():
 
                         user_name = user_json.get("name", "")
                         user_login = user_json.get("login", "")
-                        
+
                         # Пропускаем записи без login (это не пользователи)
                         if not user_login:
                             continue
-                        
+
                         log.info(f"Processing user: {user_login}, ID: {user_id}")
 
                         cur.execute(
@@ -94,7 +95,7 @@ def dds_dm_users():
                                 "user_login": user_login,
                             },
                         )
-                        
+
                         if cur.rowcount > 0:
                             if cur.rowcount == 1:
                                 inserted_count += 1
@@ -109,7 +110,9 @@ def dds_dm_users():
                         continue
 
                 conn.commit()
-                log.info(f"Summary: Inserted {inserted_count}, Updated {updated_count}, Total {len(records)}")
+                log.info(
+                    f"Summary: Inserted {inserted_count}, Updated {updated_count}, Total {len(records)}"
+                )
 
     load_task = load_users_to_dds()
 

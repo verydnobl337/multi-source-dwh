@@ -41,6 +41,8 @@ def dds_dm_restaurants():
             ORDER BY update_ts
         """
         
+        # Добавляем рестораны в DDS.
+        # ON CONFLICT предотвращает повторную вставку одного ресторана.
         insert_query = """
             INSERT INTO dds.dm_restaurants(
                 restaurant_id,
@@ -78,6 +80,8 @@ def dds_dm_restaurants():
 
                         restaurant_name = restaurant_json.get("name", "")
                         
+                        # Используем время обновления записи STG
+                        # как начало действия версии ресторана.
                         active_from = record[3]
 
                         active_to = datetime(2099, 12, 31, 0, 0, 0)

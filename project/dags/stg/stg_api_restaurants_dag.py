@@ -4,6 +4,7 @@ import requests
 
 from datetime import datetime, timedelta
 from airflow.decorators import dag, task
+from airflow.models import Variable
 from airflow.hooks.base import BaseHook
 from lib import ConnectionBuilder
 
@@ -31,15 +32,18 @@ def stg_api_restaurants_dag():
         api_conn = BaseHook.get_connection("API_CONNECTION")
         base_url = api_conn.host.rstrip("/")
         endpoint = f"{base_url}/restaurants"
-        api_key = "25c27781-8fde-4b30-a22e-524044a7580f"
 
-        HEADERS = {
-            "X-Nickname": "verydnob",
-            "X-Cohort": "14",
+        api_key = Variable.get("API_KEY")
+        api_nickname = Variable.get("API_NICKNAME")
+        api_cohort = Variable.get("API_COHORT")
+        limit = int(Variable.get("API_PAGE_LIMIT", default_var="50"))
+        offset = 0
+
+        headers = {
+            "X-Nickname": api_nickname,
+            "X-Cohort": api_cohort,
             "X-API-KEY": api_key,
         }
-        limit = 50
-        offset = 0
 
         with conn.connection() as c:
             with c.cursor() as cur:
@@ -51,7 +55,7 @@ def stg_api_restaurants_dag():
                         "sort_direction": "asc",
                     }
 
-                    response = requests.get(endpoint, headers=HEADERS, params=params)
+                    response = requests.get(endpoint, headers=headers, params=params)
 
                     if response.status_code != 200:
                         log.error(f"API error: {response.text}")

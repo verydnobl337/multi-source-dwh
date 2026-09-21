@@ -4,6 +4,7 @@ import requests
 
 from datetime import datetime, timedelta
 from airflow.decorators import dag, task
+from airflow.models import Variable
 from airflow.hooks.base import BaseHook
 from lib import ConnectionBuilder
 
@@ -35,25 +36,28 @@ def stg_api_deliveries_dag():
         base_url = api_conn.host.rstrip("/")
         endpoint = f"{base_url}/deliveries"
 
-        api_key = "25c27781-8fde-4b30-a22e-524044a7580f"
+        api_key = Variable.get("API_KEY")
+        api_nickname = Variable.get("API_NICKNAME")
+        api_cohort = Variable.get("API_COHORT")
+        limit = int(Variable.get("API_PAGE_LIMIT", default_var="50"))
+        days_back = int(
+            Variable.get("API_DELIVERIES_DAYS_BACK", default_var="7")
+        )
 
-        HEADERS = {
-            "X-Nickname": "verydnob",
-            "X-Cohort": "14",
+        # Формируем заголовки HTTP-запроса.
+        headers = {
+            "X-Nickname": api_nickname,
+            "X-Cohort": api_cohort,
             "X-API-KEY": api_key,
         }
 
-        limit = 50
         offset = 0
 
-        # окно загрузки — последние 7 дней
-        from_date = (datetime.utcnow() - timedelta(days=7)).strftime(
-            "%Y-%m-%d %H:%M:%S"
-        )
+        from_date = (
+            datetime.utcnow() - timedelta(days=days_back)
+        ).strftime("%Y-%m-%d %H:%M:%S")
 
-        to_date = datetime.utcnow().strftime(
-            "%Y-%m-%d %H:%M:%S"
-        )
+        to_date = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
 
         with conn.connection() as c:
             with c.cursor() as cur:
@@ -71,7 +75,7 @@ def stg_api_deliveries_dag():
 
                     response = requests.get(
                         endpoint,
-                        headers=HEADERS,
+                        headers=headers,
                         params=params,
                     )
 

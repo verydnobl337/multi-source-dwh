@@ -4,7 +4,6 @@ from lib import ConnectionBuilder
 from lib.dict_util import str2json
 import logging
 
-
 default_args = {
     "owner": "airflow",
     "start_date": datetime(2023, 1, 1),
@@ -27,7 +26,6 @@ def dds_fct_product_sales():
         log = logging.getLogger(__name__)
         conn = ConnectionBuilder.pg_conn("PG_WAREHOUSE_CONNECTION")
 
-        # 🔥 ВАЖНО: правильная колонка event_value
         select_query = """
             SELECT event_value
             FROM stg.bonussystem_events
@@ -73,6 +71,8 @@ def dds_fct_product_sales():
             ON CONFLICT DO NOTHING
         """
 
+        # Получаем события бонусной системы и связываем их
+        # с заказами и продуктами DDS.
         with conn.connection() as c:
             with c.cursor() as cur:
 
@@ -100,10 +100,7 @@ def dds_fct_product_sales():
 
                         cur.execute(
                             get_product_id,
-                            {
-                                "product_id": product_origin_id,
-                                "order_dt": order_dt
-                            }
+                            {"product_id": product_origin_id, "order_dt": order_dt},
                         )
 
                         prod_row = cur.fetchone()
